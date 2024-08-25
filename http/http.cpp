@@ -32,7 +32,7 @@ void http_conn::initmysql_result(std::shared_ptr<connection_pool> pool){
     while(MYSQL_ROW row=mysql_fetch_row(result)){
         std::string m1(row[0]);
         std::string m2(row[1]);
-        users[m1]=m2;
+        用户[m1]=m2;
     }
 } 
 
@@ -177,11 +177,9 @@ void modfd(int epollfd,int fd1,int ev,int MODE){
         m_read_idx+=start;
 
         if(start<=0){
-            if(errno<=0){
-                return false;
-            }
-            return true;
+            return false;
         }
+        return true;
     }else{
         while(1){//一次性全部读取完毕
               start=recv(m_sockfd,m_read_buf+m_read_idx,READ_BUFFER_SIZE-m_read_idx,0);
