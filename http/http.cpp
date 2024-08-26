@@ -128,7 +128,7 @@ void modfd(int epollfd,int fd1,int ev,int MODE){
     m_checked_idx = 0;
     m_read_idx = 0;
     m_write_idx = 0;
-    error=false;
+    error=true;
 
     cgi = 0;
     m_state = 0;
