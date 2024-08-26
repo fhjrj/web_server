@@ -399,10 +399,16 @@ void webserver::dealwithread(int sockfd){
                 adjust_timer(timer,sockfd);
              }
             }else{
-                if(!users[sockfd].error)
-                  LOG_INFO("send data to the client(%s)", inet_ntoa(users[sockfd].get_address()->sin_addr));
+                 /*非持续连接，不用延长执行时间和writev()函数调用失败，都进行关闭*/
+                if(!users[sockfd].error)//writev() error
+                {
+                  LOG_INFO("writev() error");
+                }
+                else{//not linger alive
+                    LOG_INFO("send data to the client(%s)", inet_ntoa(users[sockfd].get_address()->sin_addr));
+                }
+
                   deal_timer(timer, sockfd);
-                  /*非持续连接，不用延长执行时间*/
             }
             
          }
