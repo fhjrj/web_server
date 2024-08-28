@@ -49,9 +49,9 @@ void addfd(int epollfd,int fd,bool one_shot,int MODE){
     epoll_event event;
     event.data.fd=fd;
     if(MODE==1){
-        event.events=EPOLLIN|EPOLLIN|EPOLLRDHUP;
+        event.events=EPOLLIN|EPOLLET|EPOLLRDHUP;
     }else{
-        event.events=EPOLLIN|EPOLLRDHUP;//EPOLLRDHUP 只能同时连接处理一个套接字
+        event.events=EPOLLIN|EPOLLRDHUP;
     }
 /*是否一次监听后失效*/
     if(one_shot){
@@ -66,6 +66,7 @@ void remofd(int epollfd,int fd){
     close(fd);
 }
 
+//将事件重置为EPOLLONESHOT
 void modfd(int epollfd,int fd1,int ev,int MODE){
     epoll_event event;
     event.data.fd=fd1;
