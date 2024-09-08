@@ -157,9 +157,10 @@ void webserver::timer(int connfd,struct sockaddr_in client_data){            //E
  }
  
  void webserver::deal_timer(std::shared_ptr<heap_timer> timer,int sockfd){
-    timer->task1();
+  
     if(timer){
         utils.heaper.del_timer(timer);
+	      timer->task1();
     };
     LOG_INFO("close fd is %d",user_time[sockfd].sockfd);
  }
