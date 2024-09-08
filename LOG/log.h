@@ -38,13 +38,13 @@ static std::shared_ptr<Log> get();
 private:
   void async_log_write(){
         while(!block_queues.empty()){
-              std::unique_lock<std::mutex> guard(mm_mutex);
                 std::shared_ptr<std::string> lg=block_queues.wait_and_pop();
                 const char*p=(const char*)*(lg.get())->c_str();
               fputs(p,m_fp);
               if(m_stdout){
                 fputs(p,stdout);
               }
+             Log::get()->flush();
         }
     }
 
