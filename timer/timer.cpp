@@ -47,8 +47,11 @@ void time_heap::adjust_timer(std::shared_ptr<heap_timer> new_timer,std::shared_p
 }
 void time_heap::tick(){
     LOG_INFO("time tick");
-     if(array.size()==0) 
-     return;
+     {
+       std::unique_lock<std::mutex> locker(m_mutex);
+       if(array.size()==0) 
+          return;
+      }
     std::shared_ptr<heap_timer> tmp = array[0];
         time_t cur = time( NULL );
         while( !empty() )
