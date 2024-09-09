@@ -21,8 +21,6 @@
     }
  }
  
-
-
 std::shared_ptr<heap_timer> time_heap::top(){
         if ( empty() )
         {
@@ -56,11 +54,7 @@ void time_heap::tick(){
         time_t cur = time( NULL );
         while( !empty() )
         {
-            if( !tmp )
-            {
-                break;
-            }
-            if( tmp->expire > cur )
+            if( tmp->expire > cur||!tmp )
             {
                 break;
             }
@@ -175,6 +169,7 @@ void Utils::cb_func(client_data *user_data)
     epoll_ctl(Utils::u_epollfd, EPOLL_CTL_DEL, user_data->sockfd, 0);
     assert(user_data);
     close(user_data->sockfd);
+    LOG_INFO("close sockfd is %d",user_data->sockfd);
     http_conn::m_user_count--;
 }
 
