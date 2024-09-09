@@ -506,7 +506,7 @@ bool http_conn::write()
             }
             unmap();//调用失败
             error=false;
-            LOG_ERROR("writev() errno");
+            LOG_ERROR("The errno is %d",errno);
             return false;
         }
 
