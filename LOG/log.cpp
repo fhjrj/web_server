@@ -133,14 +133,10 @@ void Log::write_log(int level,const std::string& m,...){
         }
         m_fp = fopen(new_log, "a");
     }
-    
-    lockerp.unlock();
-    
+        
     va_list valst;
     va_start(valst, op);
-
     std::string log_str;
-    std::unique_lock<std::mutex> lock2(mm_mutex);
     
     std::string lem="";
     lem=std::to_string( my_tm.tm_year + 1900)+std::to_string(my_tm.tm_mon + 1)+std::to_string( my_tm.tm_mday)+
@@ -157,7 +153,7 @@ void Log::write_log(int level,const std::string& m,...){
                      my_tm.tm_hour, my_tm.tm_min, my_tm.tm_sec, now.tv_usec, s);
     
     /*snprintf的'\0'被后后面的vsnprintf函数覆盖*/
-    if(m.size()+start+n>=m_log_buf_size){
+    if(m.size()+start+n>=m_log_buf_size-1){
             memset(m_buf,'\0',sizeof(m_buf));
             start=0;
             n = snprintf(m_buf+start, 48, "%d-%02d-%02d %02d:%02d:%02d.%06ld %s ",
@@ -173,7 +169,7 @@ void Log::write_log(int level,const std::string& m,...){
     m_buf[n+m1+start+1]='\0';
     log_str=m_buf+start;
     start=n+m1+start+1;//下一次调用时 \0被覆盖
-    lock2.unlock();
+    lockerp.unlock();
 
     if(m_is_async&&!block_queues.empty()){
          slinglog->block_queues.push(log_str);
@@ -184,7 +180,6 @@ void Log::write_log(int level,const std::string& m,...){
             fputs(log_str.c_str(),stdout);
         }
     }
-    
     va_end(valst);
 }
 
@@ -198,3 +193,5 @@ std::mutex Log::mm_mutex;
 std::shared_ptr<Log> Log::slinglog=nullptr;
 int  Log::m_close_log=0;  
 
+
+ 
