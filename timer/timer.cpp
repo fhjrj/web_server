@@ -21,6 +21,8 @@
     }
  }
  
+
+
 std::shared_ptr<heap_timer> time_heap::top(){
         if ( empty() )
         {
@@ -43,14 +45,13 @@ void time_heap::adjust_timer(std::shared_ptr<heap_timer> new_timer,std::shared_p
          add_timer(new_timer);
          LOG_INFO("adjust timer");
 }
+
 void time_heap::tick(){
-    LOG_INFO("time tick");
-     {
+      LOG_INFO("time tick");
        std::unique_lock<std::mutex> locker(m_mutex);
        if(array.size()==0) 
           return;
-      }
-    std::shared_ptr<heap_timer> tmp = array[0];
+        std::shared_ptr<heap_timer> tmp =array[0];
         time_t cur = time( NULL );
         while( !empty() )
         {
@@ -60,7 +61,7 @@ void time_heap::tick(){
             }
             array[0]->task1();//std::function<void()>=std::bind();
             pop_timer();
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
             tmp = array[0];
         }
 }
@@ -71,6 +72,7 @@ void time_heap::pop_timer(){
         {
         LOG_ERROR("heap is empty")
         throw std::out_of_range("heap is empty");
+        return ;
         }
         
         std::swap(array[0],array[array.size()-1]);
@@ -165,13 +167,14 @@ void Utils::show_error(int connfd, const char *info)
 }
 
 void Utils::cb_func(client_data *user_data)
-{
+{   
     epoll_ctl(Utils::u_epollfd, EPOLL_CTL_DEL, user_data->sockfd, 0);
     assert(user_data);
     close(user_data->sockfd);
-    LOG_INFO("close sockfd is %d",user_data->sockfd);
     http_conn::m_user_count--;
+    LOG_INFO("close sockfd is %d",user_data->sockfd);
 }
 
 int Utils::u_epollfd=0;
 int* Utils::u_pipefd=0;
+
