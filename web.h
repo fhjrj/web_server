@@ -24,7 +24,6 @@ class webserver{
      char server_path[200];
      getcwd(server_path,200);
      std::string m(server_path);
-    
      m+="/resoue";
      m_root=m;
      std::cout<<"this resoures is :"<<m_root.c_str()<<std::endl;
@@ -84,3 +83,6 @@ class webserver{
 };
 
 #endif
+
+/*sockfd不设置epolloneshot,其他的加入到http中设置epolloneshot*/
+/*所有文件描述符都设置EPOLLRDHUP*/
