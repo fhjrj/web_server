@@ -41,7 +41,7 @@ class webserver{
     void eventListen();
     void eventLoop();
     void timer(int connfd, struct sockaddr_in client_address);
-    void adjust_timer(std::shared_ptr<heap_timer> timer,int connfd);//
+    std::shared_ptr<heap_timer> adjust_timer(std::shared_ptr<heap_timer> timer,int connfd);//
     void deal_timer(std::shared_ptr<heap_timer> timer, int sockfd);//
     bool dealclientdata();
     bool dealwithsignal(bool& timeout, bool& stop_server);
