@@ -1,5 +1,6 @@
-#include "web.h"
 
+#include "web.h"
+#include <iostream>
 webserver::~webserver(){
     close(m_epollfd);
     close(m_listenfd);
@@ -7,10 +8,7 @@ webserver::~webserver(){
     close(m_pipefd[0]);
     user_time.clear();
     users.clear();
-
-
 }
-
 
 void webserver::init(int port, std::string user, std::string passWord, std::string databaseName, int log_write, 
                      int opt_linger, int trigmode, int sql_num, int thread_num, int close_log, int actor_model)
@@ -57,13 +55,12 @@ void webserver::trig_mode()
 }
 
 
-
 void webserver::log_write(){
     if(m_close_log==0){
         if(m_log_write==1){
-            Log::get()->init("./serverlog",m_close_log,8192,5000000,true,true);
+            Log::get()->init("./serverlog",m_close_log,8192,5000000,true,false);
         }else{
-            Log::get()->init("./serverlog",m_close_log,8192,5000000,false,true);
+            Log::get()->init("./serverlog",m_close_log,8192,5000000,false,false);
         }
     }
 }
@@ -138,38 +135,37 @@ void webserver::timer(int connfd,struct sockaddr_in client_data){            //E
 
          user_time[connfd].sockfd=connfd;
          user_time[connfd].address=client_data;
-          std::shared_ptr<heap_timer> timer=std::make_shared<heap_timer>(timeout);
+          std::shared_ptr<heap_timer> timer=std::shared_ptr<heap_timer>(new heap_timer(timeout));
                 timer->user_data = &user_time[connfd];
                  std::function<void()> taskt=std::bind(&Utils::cb_func,&(this->utils),&(this->user_time[connfd]));
-                timer->task1=std::move(taskt);
+                timer->task1=std::move(taskt);//此调用的是std::function的移动运算符函数
                 user_time[connfd].timer= timer;
                 utils.heaper.add_timer(timer);
                 
 }
 
- void webserver::adjust_timer( std::shared_ptr<heap_timer> oldtimer,int connfd){
-                       std::shared_ptr<heap_timer> new_timer =std::make_shared<heap_timer>(timeout);
+  std::shared_ptr<heap_timer> webserver::adjust_timer( std::shared_ptr<heap_timer> oldtimer,int connfd){
+                       std::shared_ptr<heap_timer> new_timer =std::shared_ptr<heap_timer>(new heap_timer(timeout));
                        new_timer->user_data= &user_time[connfd];
                       std::function<void()> taskt=std::bind(&Utils::cb_func,&(this->utils),&(this->user_time[connfd]));
                       new_timer->task1=std::move(taskt);
                        user_time[connfd].timer= new_timer;
 					   utils.heaper.adjust_timer(new_timer,oldtimer);
+                       return new_timer;
  }
  
  void webserver::deal_timer(std::shared_ptr<heap_timer> timer,int sockfd){
-  
     if(timer){
+        timer->task1();
         utils.heaper.del_timer(timer);
-	      timer->task1();
-    };
-    LOG_INFO("close fd is %d",user_time[sockfd].sockfd);
+    }
  }
 
 
  bool webserver::dealclientdata(){
     struct sockaddr_in clinet_address;
     socklen_t size=sizeof(clinet_address);
-    if(0==m_LISTENTrigmode){
+    if(0==m_LISTENTrigmode){//LT
         int coonfd=accept(m_listenfd,(struct sockaddr*)&clinet_address,&size);
         if(coonfd<0){
             LOG_ERROR("%s:errno is %d","acccept error",errno);
@@ -253,6 +249,7 @@ void webserver::eventLoop()
             //处理新到的客户连接
             if (sockfd == m_listenfd)
             {
+
                 bool flag = dealclientdata();
                 if (false == flag)
                     continue;
@@ -261,6 +258,7 @@ void webserver::eventLoop()
             {
                 //服务器端关闭连接，移除对应的定时器
                 std::shared_ptr<heap_timer> timer = user_time[sockfd].timer;
+                if(!timer) continue;
                 deal_timer(timer, sockfd);
             }
            
@@ -294,6 +292,7 @@ void webserver::httpread(int sockfd){
         users[sockfd].improv=1;
         connectionRAII mysqlcon(&users[sockfd].mysql, webconnpool);//进行数据库的读取
         users[sockfd].process();
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
     else{
      users[sockfd].improv=1;
@@ -310,7 +309,7 @@ void  webserver::httpwrite(int sockfd){
           users[sockfd].timer_flag=1;  
     }
 }
-
+/*读和写失败都是timer_flag=1*/
 
 void webserver::http_read_and_write_task(int sockfd,int mod){
     users[sockfd].m_state=mod;
@@ -326,21 +325,21 @@ void webserver::dealwithread(int sockfd){
     std::shared_ptr<heap_timer> timer=user_time[sockfd].timer;
     if(timer.get()==nullptr)
      return;
-//reactor
     if(m_actormodel==1){ 
         if(timer.get()!=nullptr){
             adjust_timer(timer,sockfd);
         }
-        std::future<void> ans=Threadpool::instance().submit(std::bind(&webserver::http_read_and_write_task,this,sockfd,0));
+        decltype(auto) ans=Threadpool::instance().submit(std::bind(&webserver::http_read_and_write_task,this,sockfd,0));
         ans.get();
          while (true)
         {
             if (1 == users[sockfd].improv)
             {
                 if (1 == users[sockfd].timer_flag)
-                {
+                {   
+                    LOG_ERROR("reactor_model read false");
                     deal_timer(timer, sockfd);
-                    users[sockfd].timer_flag = 0;/*读失败，关闭，更新状态*/
+                    users[sockfd].timer_flag = 0;/*读失败，关闭*/
                 }
                 users[sockfd].improv = 0;
                 break;
@@ -349,23 +348,26 @@ void webserver::dealwithread(int sockfd){
          
     }else{//proactor 无对应更新状态和事件划分
     if (users[sockfd].read_once())
-        {
+        {   
+            if(timer){
             LOG_INFO("deal with the client(%s)", inet_ntoa(users[sockfd].get_address()->sin_addr));
-
-          std::future<void> ans=Threadpool::instance().submit([&](){
+           std::future<void> ans=Threadpool::instance().submit([&](){
                 connectionRAII mysqlcon(&(this->users[sockfd].mysql),this->webconnpool);
                 this->users[sockfd].process();
           });
-          
-          ans.get();
-            if (timer.get()!=nullptr)
+             ans.get();
+            }
+
+            if (timer)
             {  
                 adjust_timer(timer,sockfd);
+            }else{
+                deal_timer(timer,sockfd);
             }
         }
         else
         {
-            deal_timer(timer, sockfd);
+            deal_timer(timer, sockfd);//读失败，直接删除
         }
     }
     }
@@ -373,16 +375,17 @@ void webserver::dealwithread(int sockfd){
 
     void webserver::dealwithwrite(int sockfd){
         std::shared_ptr<heap_timer> timer=user_time[sockfd].timer;
-        if(timer.get()==nullptr)
-         return ;
-
+        if(!timer){
+            return ;
+        }
          if(m_actormodel==1){
-            if(timer.get()){
+            if(timer){
                 adjust_timer(timer,sockfd);
+            }else{
+                deal_timer(timer,sockfd);
             }
-
             std::future<void> ans=Threadpool::instance().submit(std::bind(&webserver::http_read_and_write_task,this,sockfd,1));
-               ans.get();
+            ans.get();
             while(true){
                 if(users[sockfd].improv==1){
                     if(users[sockfd].timer_flag==1){
@@ -395,30 +398,26 @@ void webserver::dealwithread(int sockfd){
             }
          }else{
             if(users[sockfd].write()){
-             if(timer!=nullptr){
+             if(timer){
                 LOG_INFO("send data to the client(%s)", inet_ntoa(users[sockfd].get_address()->sin_addr));
                 adjust_timer(timer,sockfd);
+             }else{
+               deal_timer(timer, sockfd);  
              }
             }else{
-                 /*非持续连接，不用延长执行时间和writev()函数调用失败，都进行关闭*/
-                if(!users[sockfd].error)//writev() error
+                 /*非持续连接，不用延长执行时间和write()函数调用失败，都进行关闭*/
+                if(!users[sockfd].error)//write
                 {
-                  LOG_INFO("writev() error");
+                  LOG_ERROR("writev() error");
                 }
-                else{//not linger alive
-                    LOG_INFO("send data to the client(%s)", inet_ntoa(users[sockfd].get_address()->sin_addr));
+                else{
                 }
-
                   deal_timer(timer, sockfd);
             }
-            
          }
     }
 
 
-
-
 /*reactor：确保每一次操作都进行完毕后且知晓对应结果状态再进入，读写事件严格分开*/
-/*proactor:限制条件没有reactor多，直接执行即可，没有专门的事件分类*/
-
+/*proactor:限制条件没有reactor多，直接执行即可，没有专门的事件分*/
 
