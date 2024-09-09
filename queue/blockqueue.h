@@ -93,8 +93,7 @@ public:
 
     void push(T new_value)  
     {
-        std::shared_ptr<T> new_data(
-            std::make_shared<T>(std::move(new_value)));
+        std::shared_ptr<T> new_data(std::shared_ptr<T>(new T(std::move(new_value))));
             {
         std::unique_ptr<node> p(new node);
         node* const new_tail = p.get();
