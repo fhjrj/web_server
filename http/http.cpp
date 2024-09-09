@@ -506,6 +506,7 @@ bool http_conn::write()
             }
             unmap();//调用失败
             error=false;
+            LOG_ERROR("writev() errno");
             return false;
         }
 
@@ -535,6 +536,7 @@ bool http_conn::write()
             }
             else
             {
+                LOG_ERROR("no m_linger");
                 return false;
             }
         }
