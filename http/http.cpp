@@ -532,6 +532,7 @@ bool http_conn::write()
             if (m_linger)
             {
                 init();
+                  LOG_ERROR("yes m_linger");
                 return true;
             }
             else
