@@ -60,7 +60,7 @@ public:
  ~time_heap(){}
 
   time_heap( ){
-    array.reserve(64);
+    array.reserve(2000);
   }
 
 
