@@ -6,7 +6,7 @@
         {
             return;
         }
-        array.push_back(timer);// not emplace_back
+        array.push_back(timer);//not emplace_back()
         siftup(array.size()-1);
         
  }
@@ -35,10 +35,9 @@ void time_heap::del_timer(std::shared_ptr<heap_timer> timer){
       if( !timer ){
 		return ;
 	  }
-	std::function<void()> notask=[](){};
-        timer->task1=notask;
+      std::function<void()> notask=[](){};
+	timer->task1=std::move(notask);
     };
-}
  
 
 void time_heap::adjust_timer(std::shared_ptr<heap_timer> new_timer,std::shared_ptr<heap_timer> old_timer){
@@ -48,11 +47,11 @@ void time_heap::adjust_timer(std::shared_ptr<heap_timer> new_timer,std::shared_p
 }
 
 void time_heap::tick(){
-      LOG_INFO("time tick");
+       LOG_INFO("time tick");
        std::unique_lock<std::mutex> locker(m_mutex);
-       if(array.size()==0) 
+       if(array.empty()) 
           return;
-        std::shared_ptr<heap_timer> tmp=array[0];
+        decltype(auto) tmp =array[0];
         time_t cur = time( NULL );
         while( !empty() )
         {
@@ -60,10 +59,13 @@ void time_heap::tick(){
             {
                 break;
             }
-            array[0]->task1();//std::function<void()>=std::bind(),not tmp->task1();
+            if(array[0]->task1&&!tmp){
+            array[0]->task1();//std::function<void()>=std::bind();
             pop_timer();
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
-            tmp = array[0];
+            tmp=array[0];
+            }else{
+                break;
+            }
         }
 }
 
