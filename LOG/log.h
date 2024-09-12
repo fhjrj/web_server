@@ -37,8 +37,8 @@ static std::shared_ptr<Log> get();
     void flush();
 private:
   void async_log_write(){
-        while(!block_queues.empty()){
-                std::shared_ptr<std::string> lg=block_queues.wait_and_pop();
+        while(1){
+                decltype(auto) lg=block_queues.wait_and_pop();
                 const char*p=(const char*)*(lg.get())->c_str();
               fputs(p,m_fp);
               if(m_stdout){
@@ -53,7 +53,7 @@ private:
         if(slinglog!=nullptr)
         Log::slinglog->get()->async_log_write();
         else{
-        std::shared_ptr<Log> mp=Log::get();
+        decltype(auto) mp=Log::get();
         mp->async_log_write();
         }
     }
