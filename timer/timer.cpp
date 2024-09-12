@@ -6,7 +6,7 @@
         {
             return;
         }
-        array.emplace_back(std::move(timer));
+        array.emplace_back(timer);
         siftup(array.size()-1);
         
  }
@@ -52,7 +52,7 @@ void time_heap::tick(){
        std::unique_lock<std::mutex> locker(m_mutex);
        if(array.size()==0) 
           return;
-        std::shared_ptr<heap_timer> tmp(std::move(array[0]));
+        std::shared_ptr<heap_timer> tmp=array[0];
         time_t cur = time( NULL );
         while( !empty() )
         {
@@ -63,7 +63,7 @@ void time_heap::tick(){
             tmp->task1();//std::function<void()>=std::bind();
             pop_timer();
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
-            tmp = std::move(array[0]);
+            tmp = array[0];
         }
 }
 
