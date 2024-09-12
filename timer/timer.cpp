@@ -6,7 +6,7 @@
         {
             return;
         }
-        array.emplace_back(timer);
+        array.push_back(timer);
         siftup(array.size()-1);
         
  }
