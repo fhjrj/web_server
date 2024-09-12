@@ -155,7 +155,7 @@ void webserver::timer(int connfd,struct sockaddr_in client_data){            //E
  }
  
  void webserver::deal_timer(std::shared_ptr<heap_timer> timer,int sockfd){
-    if(timer){
+    if(timer&&timer->task1){
         timer->task1();
         utils.heaper.del_timer(timer);
     }
@@ -328,7 +328,11 @@ void webserver::dealwithread(int sockfd){
     if(m_actormodel==1){ 
         if(timer.get()!=nullptr){
             adjust_timer(timer,sockfd);
-        }
+        }else
+	{
+        deal_timer(timer,sockfd);
+        return ;
+	}
         decltype(auto) ans=Threadpool::instance().submit(std::bind(&webserver::http_read_and_write_task,this,sockfd,0));
         ans.get();
          while (true)
@@ -383,8 +387,9 @@ void webserver::dealwithread(int sockfd){
                 adjust_timer(timer,sockfd);
             }else{
                 deal_timer(timer,sockfd);
+		    return ;
             }
-            std::future<void> ans=Threadpool::instance().submit(std::bind(&webserver::http_read_and_write_task,this,sockfd,1));
+            decltype(auto)  ans=Threadpool::instance().submit(std::bind(&webserver::http_read_and_write_task,this,sockfd,1));
             ans.get();
             while(true){
                 if(users[sockfd].improv==1){
