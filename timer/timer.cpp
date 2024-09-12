@@ -6,7 +6,7 @@
         {
             return;
         }
-        array.push_back(timer);
+        array.push_back(timer);// not emplace_back
         siftup(array.size()-1);
         
  }
@@ -60,7 +60,7 @@ void time_heap::tick(){
             {
                 break;
             }
-            tmp->task1();//std::function<void()>=std::bind();
+            array[0]->task1();//std::function<void()>=std::bind(),not tmp->task1();
             pop_timer();
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
             tmp = array[0];
