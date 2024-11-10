@@ -158,11 +158,11 @@ public:
 
     void push(T new_value)
     {
-      std::shared_ptr<T>(new T(std::move(new_value))));
+      std::shared_ptr<T>(new T(std::move(new_value)));
         std::unique_ptr<node> p(new node);
         {
             std::lock_guard<std::mutex> tail_lock(tail_mutex);
-            tail->data = new_data;
+            tail->data = new_value;
             node* const new_tail = p.get();
             new_tail->prev = tail;
             tail->next = std::move(p);
