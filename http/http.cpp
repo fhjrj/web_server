@@ -32,7 +32,7 @@ void http_conn::initmysql_result(std::shared_ptr<connection_pool> pool){
     while(MYSQL_ROW row=mysql_fetch_row(result)){
         std::string m1(row[0]);
         std::string m2(row[1]);
-        user[m1]=m2;
+        用户[m1]=m2;
     }
 } 
 
